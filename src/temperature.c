@@ -33,7 +33,7 @@ int get_temperature(double *temp)
 	/* Fetch all data the sensor supports. */
 	err = sensor_sample_fetch_chan(temp_sensor, SENSOR_CHAN_ALL);
 	if (err) {
-		LOG_ERR("Failed to sample temperature sensor, error %d", err);
+		LOG_ERR("Failed to sample sensor, error %d", err);
 		return -ENODATA;
 	}
 
@@ -48,6 +48,31 @@ int get_temperature(double *temp)
 
 	return 0;
 }
+
+int get_data(double *value, int DEFINED_TYPE)
+{
+	int err;
+	struct sensor_value data = {0};
+
+	/* Fetch all data the sensor supports. */
+	err = sensor_sample_fetch_chan(temp_sensor, SENSOR_CHAN_ALL);
+	if (err) {
+		LOG_ERR("Failed to sample sensor, error %d", err);
+		return -ENODATA;
+	}
+
+	/* Pick out the defined type data. */
+	err = sensor_channel_get(temp_sensor, DEFINED_TYPE, &data);
+	if (err) {
+		LOG_ERR("Failed to read temperature, error %d", err);
+		return -ENODATA;
+	}
+
+	*value = sensor_value_to_double(&data);
+
+	return 0;
+}
+
 
 #else /* CONFIG_TEMP_DATA_USE_SENSOR */
 

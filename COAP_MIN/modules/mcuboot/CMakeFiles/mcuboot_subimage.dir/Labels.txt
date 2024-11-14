@@ -1,0 +1,13 @@
+# Target labels
+ mcuboot_subimage
+# Source files and their labels
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/CMakeFiles/mcuboot_subimage
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/CMakeFiles/mcuboot_subimage.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/CMakeFiles/mcuboot_subimage-complete.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-build.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-configure.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-download.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-install.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-mkdir.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-patch.rule
+C:/ncs/workspace_1/nrf_cloud_multi_service_2/COAP_MIN/modules/mcuboot/mcuboot_subimage-prefix/src/mcuboot_subimage-stamp/mcuboot_subimage-update.rule

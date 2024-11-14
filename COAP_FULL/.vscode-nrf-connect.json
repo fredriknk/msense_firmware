@@ -1,0 +1,17 @@
+{
+  "board": "msensedk/nrf9160/ns",
+  "boardRevision": "",
+  "boardDir": "c:/Users/fnk/Documents/GITHUB/nrfboards/boards/arm/msensedk",
+  "shouldBuild": true,
+  "optimizations": "none",
+  "cmakeArgs": [],
+  "confFiles": [],
+  "buildDirectory": "COAP_FULL",
+  "kconfigFragments": [
+    "overlay_coap.conf"
+  ],
+  "snippets": [],
+  "dtcOverlays": [],
+  "extraDtcOverlays": [],
+  "boardRoot": "c:\\Users\\fnk\\Documents\\GITHUB\\nrfboards"
+}

@@ -16,5 +16,6 @@
  * @return int - 0 on success, otherwise, negative error code.
  */
 int get_temperature(double *temp);
+int get_data(double *value, int DEFINED_TYPE);
 
 #endif /* _TEMPERATURE_H_ */
