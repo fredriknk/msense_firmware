@@ -1,6 +1,6 @@
 {
     "format-version": 1,
-    "time": 1731681088,
+    "time": 1731681964,
     "files": [
         {
             "load_address": 98304,
@@ -8,9 +8,9 @@
             "type": "application",
             "board": "msensedk",
             "soc": "nrf9160",
-            "size": 281122,
+            "size": 281408,
             "file": "app_update.bin",
-            "modtime": 1731681088
+            "modtime": 1731681963
         }
     ],
     "name": "nrf_cloud_multi_service_2",

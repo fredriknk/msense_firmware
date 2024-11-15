@@ -485,24 +485,19 @@ void main_application_thread_fn(void)
 			double humidity = -1;
 			double pressure = -1;
 
-			if (get_data(&temp, SENSOR_CHAN_AMBIENT_TEMP) == 0) {
-				LOG_INF("Temperature is %d degrees C", (int)temp);
-            	buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_TEMP, temp);
+			if (get_all_data(&temp, &humidity, &pressure, &gas)== 0) {
+				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_TEMP, temp);
 				monitor_temperature(temp);
-        	}
-
-			if (get_data(&gas, SENSOR_CHAN_GAS_RES) == 0) {
+				LOG_INF("Temperature is %d degrees C", (int)temp);
+				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_AIR_QUAL, gas);
 				LOG_INF("Gas Resistance is %d OHM", (int)gas);
-            	buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_AIR_QUAL, gas);
-        	}
-			if (get_data(&pressure,SENSOR_CHAN_PRESS) == 0) {
-				LOG_INF("pressure is %d pascal", (int)pressure);
 				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_AIR_PRESS, pressure);
-			}
-
-			if (get_data(&humidity,SENSOR_CHAN_HUMIDITY) == 0) {
-				LOG_INF("Temperature is %d %%", (int)humidity);
+				LOG_INF("pressure is %d pascal", (int)pressure);
 				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_HUMID, humidity);
+				LOG_INF("Temperature is %d %%", (int)humidity);
+			}
+			else{
+				LOG_ERR("Failed to get sensor data");
 			}
 
 			if (sendcounter++ >= 10) {
