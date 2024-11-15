@@ -73,6 +73,45 @@ int get_data(double *value, int DEFINED_TYPE)
 	return 0;
 }
 
+int get_all_data(double *temp_variable, double *hum_variable, double *pressure_variable,double *gas_variable )
+{
+	int err;
+	struct sensor_value data = {0};
+
+	/* Fetch all data the sensor supports. */
+	err = sensor_sample_fetch_chan(temp_sensor, SENSOR_CHAN_ALL);
+	if (err) {
+		LOG_ERR("Failed to sample sensor, error %d", err);
+		return -ENODATA;
+	}
+
+	/* Pick out the defined type data. */
+	err = sensor_channel_get(temp_sensor, SENSOR_CHAN_AMBIENT_TEMP, &data);
+	if (err) {
+		LOG_ERR("Failed to read temperature, error %d", err);
+	}
+	*temp_variable = sensor_value_to_double(&data);
+
+	err = sensor_channel_get(temp_sensor, SENSOR_CHAN_HUMIDITY, &data);
+	if (err) {
+		LOG_ERR("Failed to read humidity, error %d", err);
+	}
+	*hum_variable = sensor_value_to_double(&data);
+
+	err = sensor_channel_get(temp_sensor, SENSOR_CHAN_PRESS, &data);
+	if (err) {
+		LOG_ERR("Failed to read temperature, error %d", err);
+	}
+	*pressure_variable = sensor_value_to_double(&data);
+
+	err = sensor_channel_get(temp_sensor, SENSOR_CHAN_GAS_RES, &data);
+	if (err) {
+		LOG_ERR("Failed to read temperature, error %d", err);
+	}
+	*gas_variable = sensor_value_to_double(&data);
+
+	return 0;
+}
 
 #else /* CONFIG_TEMP_DATA_USE_SENSOR */
 

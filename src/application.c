@@ -44,6 +44,39 @@ BUILD_ASSERT(CONFIG_AT_CMD_REQUEST_RESPONSE_BUFFER_LENGTH >= AT_CMD_REQUEST_ERR_
 #define TEMP_ALERT_HYSTERESIS 1.5
 #define TEMP_ALERT_LOWER_LIMIT (TEMP_ALERT_LIMIT - TEMP_ALERT_HYSTERESIS)
 
+#define MAX_BUFFER_SIZE 100  // Define a maximum buffer size based on available memory
+
+typedef struct {
+    char sensor_name[32];
+    double value;
+    int64_t timestamp;
+} sensor_data_t;
+
+sensor_data_t sensor_buffer[MAX_BUFFER_SIZE];
+size_t buffer_index = 0;
+
+void buffer_sensor_data(const char *sensor, double value) {
+    if (buffer_index < MAX_BUFFER_SIZE) {
+        int err;
+        int64_t timestamp;
+
+        // Acquire timestamp using date_time_now()
+        err = date_time_now(&timestamp);
+        if (err) {
+            LOG_ERR("Failed to obtain current time, error %d", err);
+            timestamp = k_uptime_get();  // Fallback to uptime if necessary
+        }
+
+        // Store sensor data and timestamp in buffer
+        strncpy(sensor_buffer[buffer_index].sensor_name, sensor, sizeof(sensor_buffer[buffer_index].sensor_name));
+        sensor_buffer[buffer_index].value = value;
+        sensor_buffer[buffer_index].timestamp = timestamp;
+        buffer_index++;
+    } else {
+        LOG_ERR("Sensor buffer is full!");
+    }
+}
+
 /* State of the test counter. This can be changed using the configuration in the shadow */
 static bool test_counter_enabled;
 
@@ -95,6 +128,33 @@ static int create_timestamped_device_message(struct nrf_cloud_obj *const msg,
 	return 0;
 }
 
+int create_timestamped_device_message_with_ts(struct nrf_cloud_obj *const msg,
+                                              const char *const appid,
+                                              const char *const msg_type,
+                                              int64_t timestamp) {
+    int err;
+
+    // Create message object
+    err = nrf_cloud_obj_msg_init(msg, appid,
+                                 IS_ENABLED(CONFIG_NRF_CLOUD_COAP) ? NULL : msg_type);
+    if (err) {
+        LOG_ERR("Failed to initialize message with appid %s and msg type %s",
+                appid, msg_type);
+        return err;
+    }
+
+    // Add timestamp to message object
+    err = nrf_cloud_obj_ts_add(msg, timestamp);
+    if (err) {
+        LOG_ERR("Failed to add timestamp to data message with appid %s and msg type %s",
+                appid, msg_type);
+        nrf_cloud_obj_free(msg);
+        return err;
+    }
+
+    return 0;
+}
+
 /**
  * @brief Transmit a collected sensor sample to nRF Cloud.
  *
@@ -126,6 +186,54 @@ static int send_sensor_sample(const char *const sensor, double value)
 
 	/* Send the sensor sample container object as a device message. */
 	return send_device_message(&msg_obj);
+}
+
+void send_buffered_data() {
+    int ret;
+    NRF_CLOUD_OBJ_JSON_DEFINE(bulk_obj);
+    NRF_CLOUD_OBJ_JSON_DEFINE(msg_obj);
+
+    ret = nrf_cloud_obj_bulk_init(&bulk_obj);
+    if (ret) {
+        LOG_ERR("Failed to initialize bulk message: %d", ret);
+        return;
+    }
+
+    for (size_t i = 0; i < buffer_index; i++) {
+        ret = create_timestamped_device_message_with_ts(&msg_obj,
+                                                        sensor_buffer[i].sensor_name,
+                                                        NRF_CLOUD_JSON_MSG_TYPE_VAL_DATA,
+                                                        sensor_buffer[i].timestamp);
+        if (ret) {
+            LOG_ERR("Failed to create message object: %d", ret);
+            continue;
+        }
+
+        ret = nrf_cloud_obj_num_add(&msg_obj, NRF_CLOUD_JSON_DATA_KEY, sensor_buffer[i].value, false);
+        if (ret) {
+            LOG_ERR("Failed to add data to message object: %d", ret);
+            nrf_cloud_obj_free(&msg_obj);
+            continue;
+        }
+
+        ret = nrf_cloud_obj_bulk_add(&bulk_obj, &msg_obj);
+        if (ret) {
+            LOG_ERR("Failed to add message to bulk object: %d", ret);
+            nrf_cloud_obj_free(&msg_obj);
+            continue;
+        }
+        nrf_cloud_obj_reset(&msg_obj);
+    }
+
+    ret = send_device_message(&bulk_obj);
+    if (ret) {
+        LOG_ERR("Failed to send bulk message: %d", ret);
+    } else {
+        // Clear the buffer after successful send
+        buffer_index = 0;
+    }
+
+    nrf_cloud_obj_free(&bulk_obj);
 }
 
 #if defined(CONFIG_LOCATION_TRACKING)
@@ -353,7 +461,7 @@ void main_application_thread_fn(void)
 					CONFIG_LOCATION_TRACKING_SAMPLE_INTERVAL_SECONDS);
 #endif
 	int counter = 0;
-
+	int sendcounter = 10;
 	/* Begin sampling sensors. */
 	while (true) {
 		/* Start the sensor sample interval timer.
@@ -365,41 +473,45 @@ void main_application_thread_fn(void)
 		k_timer_start(&sensor_sample_timer,
 			K_SECONDS(CONFIG_SENSOR_SAMPLE_INTERVAL_SECONDS), K_FOREVER);
 
+		if (test_counter_enable_get()) {
+			LOG_INF("Sent test counter = %d", counter);
+            buffer_sensor_data("COUNT", counter++);
+        	
+		}
+
 		if (IS_ENABLED(CONFIG_TEMP_TRACKING)) {
 			double temp = -1;
 			double gas = -1;
 			double humidity = -1;
 			double pressure = -1;
 
-			if (get_data(&temp,SENSOR_CHAN_AMBIENT_TEMP) == 0) {
+			if (get_data(&temp, SENSOR_CHAN_AMBIENT_TEMP) == 0) {
 				LOG_INF("Temperature is %d degrees C", (int)temp);
-				(void)send_sensor_sample(NRF_CLOUD_JSON_APPID_VAL_TEMP, temp);
-
+            	buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_TEMP, temp);
 				monitor_temperature(temp);
-			}
-			
-			if (get_data(&gas,SENSOR_CHAN_GAS_RES) == 0) {
-				LOG_INF("Gas Resistance is %d OHM", (int)gas);
-				(void)send_sensor_sample(NRF_CLOUD_JSON_APPID_VAL_AIR_QUAL, gas);
-			}
+        	}
 
+			if (get_data(&gas, SENSOR_CHAN_GAS_RES) == 0) {
+				LOG_INF("Gas Resistance is %d OHM", (int)gas);
+            	buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_AIR_QUAL, gas);
+        	}
 			if (get_data(&pressure,SENSOR_CHAN_PRESS) == 0) {
 				LOG_INF("pressure is %d pascal", (int)pressure);
-				(void)send_sensor_sample(NRF_CLOUD_JSON_APPID_VAL_AIR_PRESS, pressure);
+				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_AIR_PRESS, pressure);
 			}
 
 			if (get_data(&humidity,SENSOR_CHAN_HUMIDITY) == 0) {
 				LOG_INF("Temperature is %d %%", (int)humidity);
-				(void)send_sensor_sample(NRF_CLOUD_JSON_APPID_VAL_HUMID, humidity);
+				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_HUMID, humidity);
+			}
+
+			if (sendcounter++ >= 10) {
+				LOG_INF("Sending data %d datapoints", (int)buffer_index);
+            	send_buffered_data();
+				sendcounter = 0;
 			}
 
 		}
-
-		if (test_counter_enable_get()) {
-			LOG_INF("Sent test counter = %d", counter);
-			(void)send_sensor_sample("COUNT", counter++);
-		}
-
 		/* Wait out any remaining time on the sample interval timer. */
 		k_timer_status_sync(&sensor_sample_timer);
 	}
