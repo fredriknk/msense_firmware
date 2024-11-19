@@ -24,6 +24,7 @@ LOG_MODULE_REGISTER(temperature, CONFIG_MULTI_SERVICE_LOG_LEVEL);
 #if CONFIG_TEMP_DATA_USE_SENSOR
 
 static const struct device *temp_sensor = DEVICE_DT_GET(DT_ALIAS(temp_sensor));
+static const struct device *charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_charger));
 
 int get_temperature(double *temp)
 {
@@ -45,6 +46,30 @@ int get_temperature(double *temp)
 	}
 
 	*temp = sensor_value_to_double(&data);
+
+	return 0;
+}
+
+int get_voltage(double *voltage)
+{
+	int err;
+	struct sensor_value data = {0};
+
+	/* Fetch all data the sensor supports. */
+	err = sensor_sample_fetch_chan(charger, SENSOR_CHAN_ALL);
+	if (err) {
+		LOG_ERR("Failed to sample sensor, error %d", err);
+		return -ENODATA;
+	}
+
+	/* Pick out the voltage data. */
+	err = sensor_channel_get(charger, SENSOR_CHAN_GAUGE_VOLTAGE, &data);
+	if (err) {
+		LOG_ERR("Failed to read voltage, error %d", err);
+		return -ENODATA;
+	}
+
+	*voltage = sensor_value_to_double(&data);
 
 	return 0;
 }
@@ -100,13 +125,13 @@ int get_all_data(double *temp_variable, double *hum_variable, double *pressure_v
 
 	err = sensor_channel_get(temp_sensor, SENSOR_CHAN_PRESS, &data);
 	if (err) {
-		LOG_ERR("Failed to read temperature, error %d", err);
+		LOG_ERR("Failed to read pressure, error %d", err);
 	}
 	*pressure_variable = sensor_value_to_double(&data);
 
 	err = sensor_channel_get(temp_sensor, SENSOR_CHAN_GAS_RES, &data);
 	if (err) {
-		LOG_ERR("Failed to read temperature, error %d", err);
+		LOG_ERR("Failed to read gasres, error %d", err);
 	}
 	*gas_variable = sensor_value_to_double(&data);
 

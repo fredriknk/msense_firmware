@@ -8,7 +8,7 @@
   "confFiles": [],
   "buildDirectory": "COAP_MIN",
   "kconfigFragments": [
-    "overlay_min_coap.conf"
+    "overlay_msense_min_coap.conf"
   ],
   "snippets": [],
   "dtcOverlays": [],

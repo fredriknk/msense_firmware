@@ -225,3 +225,7 @@
 47	212	7533851470504333	C:/ncs/workspace_1/nrf_cloud_multi_service_2/MQTT_MIN/mcuboot/zephyr/include/generated/ncs_commit.h	3555e51fadc1843c
 64	227	7533851475204323	zephyr/include/generated/zephyr_commit.h	8950d5994ea37aba
 64	227	7533851475204323	C:/ncs/workspace_1/nrf_cloud_multi_service_2/MQTT_MIN/mcuboot/zephyr/include/generated/zephyr_commit.h	8950d5994ea37aba
+37	172	7533864249421376	zephyr/include/generated/ncs_commit.h	3555e51fadc1843c
+37	172	7533864249421376	C:/ncs/workspace_1/nrf_cloud_multi_service_2/MQTT_MIN/mcuboot/zephyr/include/generated/ncs_commit.h	3555e51fadc1843c
+45	180	7533864255891205	zephyr/include/generated/zephyr_commit.h	8950d5994ea37aba
+45	180	7533864255891205	C:/ncs/workspace_1/nrf_cloud_multi_service_2/MQTT_MIN/mcuboot/zephyr/include/generated/zephyr_commit.h	8950d5994ea37aba

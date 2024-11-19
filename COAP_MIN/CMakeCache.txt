@@ -322,7 +322,7 @@ DTC:FILEPATH=C:/ncs/toolchains/ce3b5ff664/opt/bin/dtc.exe
 DTC_OVERLAY_FILE:STRING=C:/ncs/workspace_1/nrf_cloud_multi_service_2/boards/msensedk_nrf9160_ns_0_14_0.overlay
 
 //No help, variable specified on the command line.
-EXTRA_CONF_FILE:UNINITIALIZED=overlay_min_coap.conf
+EXTRA_CONF_FILE:UNINITIALIZED=overlay_msense_min_coap.conf
 
 //Git command line client
 GIT_EXECUTABLE:FILEPATH=C:/ncs/toolchains/ce3b5ff664/mingw64/bin/git.exe

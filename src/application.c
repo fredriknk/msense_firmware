@@ -176,6 +176,7 @@ static int send_sensor_sample(const char *const sensor, double value)
 	}
 
 	/* Populate the container object with the sensor value. */
+	LOG_INF("Add obj to single send: %f", value);
 	ret = nrf_cloud_obj_num_add(&msg_obj, NRF_CLOUD_JSON_DATA_KEY, value, false);
 	if (ret) {
 		LOG_ERR("Failed to append value to %s sample container object ",
@@ -187,12 +188,57 @@ static int send_sensor_sample(const char *const sensor, double value)
 	/* Send the sensor sample container object as a device message. */
 	return send_device_message(&msg_obj);
 }
+#if defined(CONFIG_NRF_CLOUD_COAP)
+void send_buffered_data() {
+    int ret;
+    NRF_CLOUD_OBJ_JSON_DEFINE(msg_obj);
 
+    LOG_INF("Sending buffered data as individual CoAP messages");
+
+    for (size_t i = 0; i < buffer_index; i++) {
+        // Initialize the message object
+        ret = create_timestamped_device_message_with_ts(&msg_obj,
+                                                        sensor_buffer[i].sensor_name,
+                                                        NRF_CLOUD_JSON_MSG_TYPE_VAL_DATA,
+                                                        sensor_buffer[i].timestamp);
+        if (ret) {
+            LOG_ERR("Failed to create message object: %d", ret);
+            continue;
+        }
+
+        // Add the sensor value to the message
+        ret = nrf_cloud_obj_num_add(&msg_obj, NRF_CLOUD_JSON_DATA_KEY, sensor_buffer[i].value, false);
+        if (ret) {
+            LOG_ERR("Failed to add data to message object: %d", ret);
+            nrf_cloud_obj_free(&msg_obj);
+            continue;
+        }
+
+        // Send the message
+        LOG_INF("Sending message for sensor %s with value %f", sensor_buffer[i].sensor_name, sensor_buffer[i].value);
+        ret = send_device_message(&msg_obj);
+        if (ret) {
+            LOG_ERR("Failed to send message: %d", ret);
+            nrf_cloud_obj_free(&msg_obj);
+            continue;
+        }
+
+        // Reset the message object for reuse
+        nrf_cloud_obj_reset(&msg_obj);
+    }
+
+    // Clear the buffer after sending all messages
+    LOG_INF("All buffered messages sent. Clearing buffer.");
+    buffer_index = 0;
+}
+#endif
+
+#if defined(CONFIG_NRF_CLOUD_MQTT)
 void send_buffered_data() {
     int ret;
     NRF_CLOUD_OBJ_JSON_DEFINE(bulk_obj);
     NRF_CLOUD_OBJ_JSON_DEFINE(msg_obj);
-
+	LOG_INF("Initializing bulk message");
     ret = nrf_cloud_obj_bulk_init(&bulk_obj);
     if (ret) {
         LOG_ERR("Failed to initialize bulk message: %d", ret);
@@ -210,6 +256,7 @@ void send_buffered_data() {
         }
 
         ret = nrf_cloud_obj_num_add(&msg_obj, NRF_CLOUD_JSON_DATA_KEY, sensor_buffer[i].value, false);
+		LOG_INF("Add obj to bulk send: %f", sensor_buffer[i].value);
         if (ret) {
             LOG_ERR("Failed to add data to message object: %d", ret);
             nrf_cloud_obj_free(&msg_obj);
@@ -224,8 +271,9 @@ void send_buffered_data() {
         }
         nrf_cloud_obj_reset(&msg_obj);
     }
-
+	LOG_INF("Send bulk message");
     ret = send_device_message(&bulk_obj);
+	
     if (ret) {
         LOG_ERR("Failed to send bulk message: %d", ret);
     } else {
@@ -235,6 +283,7 @@ void send_buffered_data() {
 
     nrf_cloud_obj_free(&bulk_obj);
 }
+#endif
 
 #if defined(CONFIG_LOCATION_TRACKING)
 /**
@@ -461,7 +510,8 @@ void main_application_thread_fn(void)
 					CONFIG_LOCATION_TRACKING_SAMPLE_INTERVAL_SECONDS);
 #endif
 	int counter = 0;
-	int sendcounter = 10;
+	int sendcounter = 9999;
+	int sendcounter_compare = 5;
 	/* Begin sampling sensors. */
 	while (true) {
 		/* Start the sensor sample interval timer.
@@ -484,23 +534,33 @@ void main_application_thread_fn(void)
 			double gas = -1;
 			double humidity = -1;
 			double pressure = -1;
+			double voltage = -1;
 
 			if (get_all_data(&temp, &humidity, &pressure, &gas)== 0) {
 				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_TEMP, temp);
 				monitor_temperature(temp);
-				LOG_INF("Temperature is %d degrees C", (int)temp);
+				LOG_INF("Temperature is %f degrees C", temp);
 				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_AIR_QUAL, gas);
 				LOG_INF("Gas Resistance is %d OHM", (int)gas);
 				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_AIR_PRESS, pressure);
-				LOG_INF("pressure is %d pascal", (int)pressure);
+				LOG_INF("pressure is %f pascal", pressure);
 				buffer_sensor_data(NRF_CLOUD_JSON_APPID_VAL_HUMID, humidity);
-				LOG_INF("Temperature is %d %%", (int)humidity);
+				LOG_INF("Humidity is %f %%", humidity);
 			}
 			else{
 				LOG_ERR("Failed to get sensor data");
 			}
 
-			if (sendcounter++ >= 10) {
+			if (sendcounter++ > sendcounter_compare) {
+				if(get_voltage(&voltage) == 0){
+					buffer_sensor_data("VBATT", voltage);
+					LOG_INF("Voltage is %f V", voltage);
+				}
+				else{
+					LOG_ERR("Failed to get voltage data");
+				}
+
+
 				LOG_INF("Sending data %d datapoints", (int)buffer_index);
             	send_buffered_data();
 				sendcounter = 0;

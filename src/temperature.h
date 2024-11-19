@@ -18,4 +18,5 @@
 int get_temperature(double *temp);
 int get_data(double *value, int DEFINED_TYPE);
 int get_all_data(double *temp_variable, double *hum_variable, double *pressure_variable,double *gas_variable );
+int get_voltage(double *voltage);
 #endif /* _TEMPERATURE_H_ */
